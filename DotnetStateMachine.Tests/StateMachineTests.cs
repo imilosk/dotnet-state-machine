@@ -79,9 +79,9 @@ public class StateMachineTests
     {
         var stateMachine = CreateCommonStateMachine();
 
-        var expectedException = typeof(Exception);
+        var expectedException = typeof(InvalidOperationException);
 
-        // non configured state
+        // unconfigured state
         Assert.Throws(expectedException,
             () => stateMachine.Peek(AdvertState.StateWithoutConfiguration, AdvertTrigger.Edit));
         
