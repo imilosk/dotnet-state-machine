@@ -46,7 +46,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestPeek()
+    public void TestPeekDestinationState()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -84,10 +84,69 @@ public class StateMachineTests
         // unconfigured state
         Assert.Throws(expectedException,
             () => stateMachine.Peek(AdvertState.StateWithoutConfiguration, AdvertTrigger.Edit));
-        
+
         Assert.Throws(expectedException, () => stateMachine.Peek(AdvertState.None, AdvertTrigger.Edit));
         Assert.Throws(expectedException, () => stateMachine.Peek(AdvertState.Active, AdvertTrigger.Approve));
         Assert.Throws(expectedException, () => stateMachine.Peek(AdvertState.Active, AdvertTrigger.Deny));
         Assert.Throws(expectedException, () => stateMachine.Peek(AdvertState.Archived, AdvertTrigger.Edit));
+    }
+
+    [Fact]
+    public void TestFireDestinationState()
+    {
+        var stateMachine = CreateCommonStateMachine();
+
+        // test transitions
+        var destinationState = stateMachine.Fire(AdvertState.None, AdvertTrigger.Create);
+        Assert.Equal(AdvertState.Draft, destinationState);
+
+        destinationState = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish);
+        Assert.Equal(AdvertState.Pending, destinationState);
+
+        destinationState = stateMachine.Fire(AdvertState.Pending, AdvertTrigger.Approve);
+        Assert.Equal(AdvertState.Active, destinationState);
+
+        destinationState = stateMachine.Fire(AdvertState.Pending, AdvertTrigger.Deny);
+        Assert.Equal(AdvertState.Denied, destinationState);
+
+        destinationState = stateMachine.Fire(AdvertState.Active, AdvertTrigger.Archive);
+        Assert.Equal(AdvertState.Archived, destinationState);
+
+        // tests reentry
+        destinationState = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Edit);
+        Assert.Equal(AdvertState.Draft, destinationState);
+
+        destinationState = stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit);
+        Assert.Equal(AdvertState.Active, destinationState);
+    }
+
+    [Fact]
+    public void TestFireCallbackWithoutUsingParameter()
+    {
+        var stateMachine = CreateCommonStateMachine();
+
+        var actualValue = -1;
+
+        _ = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish,
+            _ => actualValue = 42);
+
+        Assert.Equal(42, actualValue);
+    }
+    
+    [Fact]
+    public void TestFireWithParameter()
+    {
+        var stateMachine = CreateCommonStateMachine();
+
+        AdvertState? expectedParameter = null;
+        
+        var destinationState = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish,
+            newState =>
+            {
+                expectedParameter = newState;
+            });
+
+        Assert.Equal(AdvertState.Pending, expectedParameter);
+        Assert.Equal(expectedParameter, destinationState);
     }
 }

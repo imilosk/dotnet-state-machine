@@ -28,4 +28,20 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
 
         return allowedTransitions[trigger];
     }
+
+    public TState Fire(TState sourceState, TTrigger trigger)
+    {
+        return Fire(sourceState, trigger, _ => { });
+    }
+
+    public TState Fire(TState sourceState, TTrigger trigger, Action<TState> transitionAction)
+    {
+        var destinationState = Peek(sourceState, trigger);
+        
+        // TODO: execute exit triggers on current state
+        transitionAction(destinationState);
+        // TODO: execute enter triggers on new state
+        
+        return destinationState;
+    }
 }
