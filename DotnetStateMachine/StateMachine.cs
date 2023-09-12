@@ -11,19 +11,19 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
         return _stateConfiguration[state];
     }
 
-    public TState Peek(TState state, TTrigger trigger)
+    public TState Peek(TState sourceState, TTrigger trigger)
     {
-        if (!_stateConfiguration.ContainsKey(state))
+        if (!_stateConfiguration.ContainsKey(sourceState))
         {
-            throw new InvalidOperationException($"State '{state}' is not configured.'");
+            throw new InvalidOperationException($"State '{sourceState}' is not configured.'");
         }
 
-        var allowedTransitions = _stateConfiguration[state].AllowedTransitions;
+        var allowedTransitions = _stateConfiguration[sourceState].AllowedTransitions;
 
         if (!allowedTransitions.ContainsKey(trigger))
         {
             throw new InvalidOperationException(
-                $"No valid leaving transitions are permitted from state '{state}' for trigger '{trigger}'.");
+                $"No valid leaving transitions are permitted from state '{sourceState}' for trigger '{trigger}'.");
         }
 
         return allowedTransitions[trigger];
