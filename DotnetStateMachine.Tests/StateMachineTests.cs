@@ -50,7 +50,6 @@ public class StateMachineTests
             .InternalTransition(AdvertTrigger.SetDelivering, t => _deliveringTrigger = t)
             .InternalTransition(AdvertTrigger.SetNotDelivering, t => _notDeliveringTrigger = t);
 
-
         return stateMachine;
     }
 
@@ -168,18 +167,18 @@ public class StateMachineTests
         Assert.Null(exception);
         Assert.Equal(AdvertState.Pending, destinationState);
     }
-
-    
     [Fact]
     public void TestInternalTrigger()
     {
         // TODO: Improve this test by not using class static properties
         var stateMachine = CreateCommonStateMachine();
 
-        var destinationState = stateMachine.Fire(AdvertState.None, AdvertTrigger.Create);
+        var destinationState = stateMachine.Fire(AdvertState.Active, AdvertTrigger.SetDelivering);
+        Assert.Equal(AdvertState.Active, destinationState);
         // Assert.Equal(AdvertTrigger.SetDelivering, _deliveringTrigger);
 
-        Assert.Equal(AdvertState.Draft, destinationState);
+        destinationState = stateMachine.Fire(AdvertState.Active, AdvertTrigger.SetNotDelivering);
+        Assert.Equal(AdvertState.Active, destinationState);
         // Assert.Equal(AdvertTrigger.SetNotDelivering, _notDeliveringTrigger);
     }
 }
