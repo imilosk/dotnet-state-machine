@@ -4,12 +4,12 @@ public struct TriggerConfiguration<TState, TTrigger> where TState : notnull wher
 {
     public TTrigger Trigger { get; }
     public TState State { get; }
-    public bool IsIgnored { get; }
+    public TriggerType TriggerType { get; }
 
-    public TriggerConfiguration(TTrigger trigger, TState state, bool isIgnored)
+    public TriggerConfiguration(TTrigger trigger, TState state, TriggerType triggerType)
     {
         Trigger = trigger;
         State = state;
-        IsIgnored = isIgnored;
+        TriggerType = triggerType;
     }
 }

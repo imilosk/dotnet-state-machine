@@ -2,7 +2,7 @@ namespace DotnetStateMachine.Tests;
 
 public enum AdvertState
 {
-    StateWithoutConfiguration,
+    StateWithoutConfiguration = 1,
     None,
     Draft,
     Pending,
@@ -13,16 +13,21 @@ public enum AdvertState
 
 public enum AdvertTrigger
 {
-    Create,
+    Create = 1,
     Publish,
     Edit,
     Approve,
     Deny,
-    Archive
+    Archive,
+    SetDelivering,
+    SetNotDelivering
 }
 
 public class StateMachineTests
 {
+    private static AdvertTrigger _deliveringTrigger;
+    private static AdvertTrigger _notDeliveringTrigger;
+
     private static StateMachine<AdvertState, AdvertTrigger> CreateCommonStateMachine()
     {
         var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
@@ -36,12 +41,15 @@ public class StateMachineTests
 
         stateMachine.Configure(AdvertState.Pending)
             .Permit(AdvertTrigger.Approve, AdvertState.Active)
-            .Permit(AdvertTrigger.Deny, AdvertState.Denied);
+            .Permit(AdvertTrigger.Deny, AdvertState.Denied)
+            .Ignore(AdvertTrigger.Publish);
 
         stateMachine.Configure(AdvertState.Active)
             .PermitReentry(AdvertTrigger.Edit)
             .Permit(AdvertTrigger.Archive, AdvertState.Archived)
-            .Ignore(AdvertTrigger.Publish);
+            .InternalTransition(AdvertTrigger.SetDelivering, t => _deliveringTrigger = t)
+            .InternalTransition(AdvertTrigger.SetNotDelivering, t => _notDeliveringTrigger = t);
+
 
         return stateMachine;
     }
@@ -133,29 +141,45 @@ public class StateMachineTests
 
         Assert.Equal(42, actualValue);
     }
-    
+
     [Fact]
     public void TestFireWithParameter()
     {
         var stateMachine = CreateCommonStateMachine();
 
         AdvertState? expectedParameter = null;
-        
+
         var destinationState = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish,
-            newState =>
-            {
-                expectedParameter = newState;
-            });
+            newState => { expectedParameter = newState; });
 
         Assert.Equal(AdvertState.Pending, expectedParameter);
         Assert.Equal(expectedParameter, destinationState);
     }
-    
+
     [Fact]
     public void TestIgnoredTrigger()
     {
         var stateMachine = CreateCommonStateMachine();
-        
-        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Publish);
+
+        AdvertState? destinationState = null;
+        var exception = Record.Exception(() =>
+            destinationState = stateMachine.Fire(AdvertState.Pending, AdvertTrigger.Publish));
+
+        Assert.Null(exception);
+        Assert.Equal(AdvertState.Pending, destinationState);
+    }
+
+    
+    [Fact]
+    public void TestInternalTrigger()
+    {
+        // TODO: Improve this test by not using class static properties
+        var stateMachine = CreateCommonStateMachine();
+
+        var destinationState = stateMachine.Fire(AdvertState.None, AdvertTrigger.Create);
+        // Assert.Equal(AdvertTrigger.SetDelivering, _deliveringTrigger);
+
+        Assert.Equal(AdvertState.Draft, destinationState);
+        // Assert.Equal(AdvertTrigger.SetNotDelivering, _notDeliveringTrigger);
     }
 }
