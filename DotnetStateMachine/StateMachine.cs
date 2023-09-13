@@ -26,7 +26,7 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
                 $"No valid leaving transitions are permitted from state '{sourceState}' for trigger '{trigger}'.");
         }
 
-        return allowedTransitions[trigger];
+        return allowedTransitions[trigger].State;
     }
 
     public TState Fire(TState sourceState, TTrigger trigger)
@@ -38,9 +38,9 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
     {
         var destinationState = Peek(sourceState, trigger);
         
-        // TODO: execute exit triggers on current state
+        // TODO: execute exit triggers on current state, skip if trigger is ignored
         transitionAction(destinationState);
-        // TODO: execute enter triggers on new state
+        // TODO: execute enter triggers on new state, skip if trigger is ignored
         
         return destinationState;
     }

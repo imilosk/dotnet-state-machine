@@ -40,7 +40,8 @@ public class StateMachineTests
 
         stateMachine.Configure(AdvertState.Active)
             .PermitReentry(AdvertTrigger.Edit)
-            .Permit(AdvertTrigger.Archive, AdvertState.Archived);
+            .Permit(AdvertTrigger.Archive, AdvertState.Archived)
+            .Ignore(AdvertTrigger.Publish);
 
         return stateMachine;
     }
@@ -148,5 +149,13 @@ public class StateMachineTests
 
         Assert.Equal(AdvertState.Pending, expectedParameter);
         Assert.Equal(expectedParameter, destinationState);
+    }
+    
+    [Fact]
+    public void TestIgnoredTrigger()
+    {
+        var stateMachine = CreateCommonStateMachine();
+        
+        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Publish);
     }
 }
