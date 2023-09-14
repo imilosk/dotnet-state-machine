@@ -25,9 +25,6 @@ public enum AdvertTrigger
 
 public class StateMachineTests
 {
-    private static AdvertTrigger _deliveringTrigger;
-    private static AdvertTrigger _notDeliveringTrigger;
-
     private static StateMachine<AdvertState, AdvertTrigger> CreateCommonStateMachine()
     {
         var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
@@ -46,9 +43,7 @@ public class StateMachineTests
 
         stateMachine.Configure(AdvertState.Active)
             .PermitReentry(AdvertTrigger.Edit)
-            .Permit(AdvertTrigger.Archive, AdvertState.Archived)
-            .InternalTransition(AdvertTrigger.SetDelivering, t => _deliveringTrigger = t)
-            .InternalTransition(AdvertTrigger.SetNotDelivering, t => _notDeliveringTrigger = t);
+            .Permit(AdvertTrigger.Archive, AdvertState.Archived);
 
         return stateMachine;
     }
@@ -167,18 +162,25 @@ public class StateMachineTests
         Assert.Null(exception);
         Assert.Equal(AdvertState.Pending, destinationState);
     }
+
     [Fact]
     public void TestInternalTrigger()
     {
-        // TODO: Improve this test by not using class static properties
-        var stateMachine = CreateCommonStateMachine();
+        AdvertTrigger? deliveringTrigger = null;
+        AdvertTrigger? notDeliveringTrigger = null;
+
+        var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
+
+        stateMachine.Configure(AdvertState.Active)
+            .InternalTransition(AdvertTrigger.SetDelivering, t => deliveringTrigger = t)
+            .InternalTransition(AdvertTrigger.SetNotDelivering, t => notDeliveringTrigger = t);
 
         var destinationState = stateMachine.Fire(AdvertState.Active, AdvertTrigger.SetDelivering);
         Assert.Equal(AdvertState.Active, destinationState);
-        // Assert.Equal(AdvertTrigger.SetDelivering, _deliveringTrigger);
+        Assert.Equal(AdvertTrigger.SetDelivering, deliveringTrigger);
 
         destinationState = stateMachine.Fire(AdvertState.Active, AdvertTrigger.SetNotDelivering);
         Assert.Equal(AdvertState.Active, destinationState);
-        // Assert.Equal(AdvertTrigger.SetNotDelivering, _notDeliveringTrigger);
+        Assert.Equal(AdvertTrigger.SetNotDelivering, notDeliveringTrigger);
     }
 }

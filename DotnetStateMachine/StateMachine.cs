@@ -11,7 +11,7 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
         return _stateConfiguration[state];
     }
 
-    public TState Peek(TState sourceState, TTrigger trigger)
+    private TransitionConfiguration<TState, TTrigger> PeekAllowedTransition(TState sourceState, TTrigger trigger)
     {
         if (!_stateConfiguration.ContainsKey(sourceState))
         {
@@ -26,7 +26,12 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
                 $"No valid leaving transitions are permitted from state '{sourceState}' for trigger '{trigger}'.");
         }
 
-        return allowedTransitions[trigger].State;
+        return allowedTransitions[trigger];
+    }
+
+    public TState Peek(TState sourceState, TTrigger trigger)
+    {
+        return PeekAllowedTransition(sourceState, trigger).DestinationState;
     }
 
     public TState Fire(TState sourceState, TTrigger trigger)
@@ -36,17 +41,24 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
 
     public TState Fire(TState sourceState, TTrigger trigger, Action<TState>? transitionAction)
     {
-        var destinationState = Peek(sourceState, trigger);
-        
-        // TODO: execute exit triggers on current state, skip if trigger is ignored
-        
-        if (transitionAction is not null)
+        var transition = PeekAllowedTransition(sourceState, trigger);
+
+        switch (transition.TriggerType)
         {
-            transitionAction(destinationState);
+            case TriggerType.Ignored:
+                break;
+            case TriggerType.InternalTransition:
+                transition.InternalTransitionAction?.Invoke(transition.Trigger);
+                break;
+            case TriggerType.TransitionWithEntryAndExitActions:
+                // TODO: execute exit triggers on current state, skip if trigger is ignored
+                transitionAction?.Invoke(transition.DestinationState);
+                // TODO: execute enter triggers on new state, skip if trigger is ignored
+                break;
+            default:
+                throw new NotImplementedException("Unimplemented transition type.");
         }
 
-        // TODO: execute enter triggers on new state, skip if trigger is ignored
-        
-        return destinationState;
+        return transition.DestinationState;
     }
 }
