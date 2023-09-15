@@ -215,4 +215,25 @@ public class StateMachineTests
         // this should not throw an unconfigured trigger exception 
         stateMachine.Fire(AdvertState.None, AdvertTrigger.Create);
     }
+
+    [Fact]
+    public void TestOnExitAndOnEntryActions()
+    {
+        var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
+
+        var onExitExecuted = false;
+        var onEntryExecuted = false;
+
+        stateMachine.Configure(AdvertState.Pending)
+            .Permit(AdvertTrigger.Approve, AdvertState.Active)
+            .OnExit(t => onExitExecuted = true);
+
+        stateMachine.Configure(AdvertState.Active)
+            .OnEntry(t => onEntryExecuted = true);
+
+        stateMachine.Fire(AdvertState.Pending, AdvertTrigger.Approve);
+
+        Assert.True(onExitExecuted);
+        Assert.True(onEntryExecuted);
+    }
 }

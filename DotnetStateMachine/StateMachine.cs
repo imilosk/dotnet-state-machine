@@ -54,9 +54,16 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
                 transition.InternalTransitionAction?.Invoke(transition.Trigger);
                 break;
             case TriggerType.TransitionWithEntryAndExitActions:
-                // TODO: execute exit triggers on current state, skip if trigger is ignored
-                transitionAction?.Invoke(transition.DestinationState);
-                // TODO: execute enter triggers on new state, skip if trigger is ignored
+                var destinationState = transition.DestinationState;
+
+                _stateConfiguration[sourceState].OnExitAction?.Invoke(transition.Trigger);
+                transitionAction?.Invoke(destinationState);
+
+                if (_stateConfiguration.ContainsKey(destinationState))
+                {
+                    _stateConfiguration[destinationState].OnEntryAction?.Invoke(transition.Trigger);
+                }
+
                 break;
             default:
                 throw new NotImplementedException("Unimplemented transition type.");

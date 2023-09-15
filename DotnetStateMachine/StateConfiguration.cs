@@ -4,6 +4,8 @@ public class StateConfiguration<TState, TTrigger> where TState : notnull where T
 {
     private readonly TState _state;
     public Dictionary<TTrigger, TransitionConfiguration<TState, TTrigger>> AllowedTransitions { get; } = new();
+    internal Action<TTrigger>? OnEntryAction { get; set; }
+    internal Action<TTrigger>? OnExitAction { get; set; }
 
     public StateConfiguration(TState state)
     {
@@ -44,5 +46,19 @@ public class StateConfiguration<TState, TTrigger> where TState : notnull where T
     public StateConfiguration<TState, TTrigger> InternalTransition(TTrigger trigger, Action<TTrigger> action)
     {
         return AddAllowedTransition(trigger, _state, TriggerType.InternalTransition, action);
+    }
+
+    public StateConfiguration<TState, TTrigger> OnEntry(Action<TTrigger> action)
+    {
+        OnEntryAction = action;
+
+        return this;
+    }
+
+    public StateConfiguration<TState, TTrigger> OnExit(Action<TTrigger> action)
+    {
+        OnExitAction = action;
+
+        return this;
     }
 }
