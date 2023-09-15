@@ -43,7 +43,9 @@ public class StateMachineTests
 
         stateMachine.Configure(AdvertState.Active)
             .PermitReentry(AdvertTrigger.Edit)
-            .Permit(AdvertTrigger.Archive, AdvertState.Archived);
+            .Permit(AdvertTrigger.Archive, AdvertState.Archived)
+            .InternalTransition(AdvertTrigger.SetDelivering, t => Console.WriteLine(t))
+            .InternalTransition(AdvertTrigger.SetNotDelivering, t => Console.WriteLine(t));
 
         return stateMachine;
     }
@@ -182,5 +184,35 @@ public class StateMachineTests
         destinationState = stateMachine.Fire(AdvertState.Active, AdvertTrigger.SetNotDelivering);
         Assert.Equal(AdvertState.Active, destinationState);
         Assert.Equal(AdvertTrigger.SetNotDelivering, notDeliveringTrigger);
+    }
+
+    [Fact]
+    public void TestReconfigureTrigger()
+    {
+        var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
+
+        stateMachine.Configure(AdvertState.None)
+            .Permit(AdvertTrigger.Create, AdvertState.Draft);
+
+        var expectedException = typeof(Exception);
+
+        Assert.Throws(expectedException, () => stateMachine.Configure(AdvertState.None)
+            .Permit(AdvertTrigger.Create, AdvertState.Draft));
+    }
+
+    [Fact]
+    public void TestOverrideStateConfiguration()
+    {
+        var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
+
+        stateMachine.Configure(AdvertState.None)
+            .Permit(AdvertTrigger.Create, AdvertState.Draft);
+
+        // this should not throw an exception
+        stateMachine.Configure(AdvertState.None);
+
+        // the trigger configuration should not be override and 
+        // this should not throw an unconfigured trigger exception 
+        stateMachine.Fire(AdvertState.None, AdvertTrigger.Create);
     }
 }

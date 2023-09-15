@@ -6,7 +6,10 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
 
     public StateConfiguration<TState, TTrigger> Configure(TState state)
     {
-        _stateConfiguration.Add(state, new StateConfiguration<TState, TTrigger>(state));
+        if (!_stateConfiguration.ContainsKey(state))
+        {
+            _stateConfiguration.Add(state, new StateConfiguration<TState, TTrigger>(state));
+        }
 
         return _stateConfiguration[state];
     }
