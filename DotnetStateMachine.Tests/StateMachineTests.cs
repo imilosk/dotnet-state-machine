@@ -51,7 +51,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void Peek_WhenValidInput_ReturnsCorrectDestinationState()
+    public void Peek_WithValidInput_ReturnsCorrectDestinationState()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -77,10 +77,14 @@ public class StateMachineTests
 
         destinationState = stateMachine.Peek(AdvertState.Active, AdvertTrigger.Edit);
         Assert.Equal(AdvertState.Active, destinationState);
+
+        // tests ignored triggers
+        destinationState = stateMachine.Peek(AdvertState.Pending, AdvertTrigger.Publish);
+        Assert.Equal(AdvertState.Pending, destinationState);
     }
 
     [Fact]
-    public void Peek_WhenInvalidInput_ThrowsException()
+    public void Peek_WithInvalidInput_ThrowsException()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -97,7 +101,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void Fire_WhenValidInput_ReturnsCorrectDestinationState()
+    public void Fire_WithValidInput_ReturnsCorrectDestinationState()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -123,6 +127,10 @@ public class StateMachineTests
 
         destinationState = stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit);
         Assert.Equal(AdvertState.Active, destinationState);
+
+        // tests ignored triggers
+        destinationState = stateMachine.Fire(AdvertState.Pending, AdvertTrigger.Publish);
+        Assert.Equal(AdvertState.Pending, destinationState);
     }
 
     [Fact]
@@ -150,19 +158,6 @@ public class StateMachineTests
 
         Assert.Equal(AdvertState.Pending, expectedParameter);
         Assert.Equal(expectedParameter, destinationState);
-    }
-
-    [Fact]
-    public void Fire_WithIgnoredTrigger_DoesNotChangeState()
-    {
-        var stateMachine = CreateCommonStateMachine();
-
-        AdvertState? destinationState = null;
-        var exception = Record.Exception(() =>
-            destinationState = stateMachine.Fire(AdvertState.Pending, AdvertTrigger.Publish));
-
-        Assert.Null(exception);
-        Assert.Equal(AdvertState.Pending, destinationState);
     }
 
     [Fact]
