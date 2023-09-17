@@ -194,10 +194,12 @@ public class StateMachineTests
         stateMachine.Configure(AdvertState.None)
             .Permit(AdvertTrigger.Create, AdvertState.Draft);
 
-        var expectedException = typeof(Exception);
+        var expectedException = typeof(ArgumentException);
 
-        Assert.Throws(expectedException, () => stateMachine.Configure(AdvertState.None)
-            .Permit(AdvertTrigger.Create, AdvertState.Draft));
+        Assert.Throws(expectedException, () =>
+            stateMachine.Configure(AdvertState.None)
+                .Permit(AdvertTrigger.Create, AdvertState.Draft)
+        );
     }
 
     [Fact]
@@ -208,12 +210,13 @@ public class StateMachineTests
         stateMachine.Configure(AdvertState.None)
             .Permit(AdvertTrigger.Create, AdvertState.Draft);
 
-        // this should not throw an exception
-        stateMachine.Configure(AdvertState.None);
+        var exception = Record.Exception(() => stateMachine.Configure(AdvertState.None));
+        Assert.Null(exception);
 
-        // the trigger configuration should not be override and 
-        // this should not throw an unconfigured trigger exception 
-        stateMachine.Fire(AdvertState.None, AdvertTrigger.Create);
+        // The trigger configuration should not be overriden meaning this should not throw an
+        // unconfigured trigger exception 
+        exception = Record.Exception(() => stateMachine.Fire(AdvertState.None, AdvertTrigger.Create));
+        Assert.Null(exception);
     }
 
     [Fact]
@@ -229,9 +232,29 @@ public class StateMachineTests
             .OnExit(t => onExitExecuted = true);
 
         stateMachine.Configure(AdvertState.Active)
+            .PermitReentry(AdvertTrigger.Edit)
             .OnEntry(t => onEntryExecuted = true);
 
         stateMachine.Fire(AdvertState.Pending, AdvertTrigger.Approve);
+
+        Assert.True(onExitExecuted);
+        Assert.True(onEntryExecuted);
+    }
+
+    [Fact]
+    public void TestOnExitAndOnEntryActionsOnReentry()
+    {
+        var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
+
+        var onExitExecuted = false;
+        var onEntryExecuted = false;
+
+        stateMachine.Configure(AdvertState.Active)
+            .PermitReentry(AdvertTrigger.Edit)
+            .OnEntry(t => onEntryExecuted = true)
+            .OnExit(t => onExitExecuted = true);
+
+        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit);
 
         Assert.True(onExitExecuted);
         Assert.True(onEntryExecuted);

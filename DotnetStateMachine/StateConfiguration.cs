@@ -17,7 +17,9 @@ public class StateConfiguration<TState, TTrigger> where TState : notnull where T
     {
         if (AllowedTransitions.ContainsKey(trigger))
         {
-            throw new Exception($"Trigger '{trigger}' already configured for state '{_state}'.");
+            throw new ArgumentException(
+                "Permit() (and PermitIf()) require that the destination state is not equal to the source " +
+                "state. To accept a trigger without changing state, use either Ignore() or PermitReentry().");
         }
 
         var triggerConfiguration =

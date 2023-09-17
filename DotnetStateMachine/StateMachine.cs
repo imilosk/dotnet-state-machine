@@ -16,20 +16,15 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
 
     private TransitionConfiguration<TState, TTrigger> PeekAllowedTransition(TState sourceState, TTrigger trigger)
     {
-        if (!_stateConfiguration.ContainsKey(sourceState))
-        {
-            throw new InvalidOperationException($"State '{sourceState}' is not configured.'");
-        }
-
-        var allowedTransitions = _stateConfiguration[sourceState].AllowedTransitions;
-
-        if (!allowedTransitions.ContainsKey(trigger))
+        if (!_stateConfiguration.ContainsKey(sourceState) ||
+            !_stateConfiguration[sourceState].AllowedTransitions.TryGetValue(trigger, out var allowedTransitions))
         {
             throw new InvalidOperationException(
-                $"No valid leaving transitions are permitted from state '{sourceState}' for trigger '{trigger}'.");
+                $"No valid leaving transitions are permitted from state '{sourceState}' for trigger " +
+                $"'{trigger}'. Consider ignoring the trigger.");
         }
 
-        return allowedTransitions[trigger];
+        return allowedTransitions;
     }
 
     public TState Peek(TState sourceState, TTrigger trigger)
@@ -59,9 +54,9 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
                 _stateConfiguration[sourceState].OnExitAction?.Invoke(transition.Trigger);
                 transitionAction?.Invoke(destinationState);
 
-                if (_stateConfiguration.ContainsKey(destinationState))
+                if (_stateConfiguration.TryGetValue(destinationState, out var stateConfiguration))
                 {
-                    _stateConfiguration[destinationState].OnEntryAction?.Invoke(transition.Trigger);
+                    stateConfiguration.OnEntryAction?.Invoke(transition.Trigger);
                 }
 
                 break;
