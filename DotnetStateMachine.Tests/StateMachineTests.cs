@@ -51,7 +51,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestPeekDestinationState()
+    public void Peek_WhenValidInput_ReturnsCorrectDestinationState()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -80,7 +80,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestBadPeek()
+    public void Peek_WhenInvalidInput_ThrowsException()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -97,7 +97,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestFireDestinationState()
+    public void Fire_WhenValidInput_ReturnsCorrectDestinationState()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -126,7 +126,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestFireCallbackWithoutUsingParameter()
+    public void Fire_WithDelegateWithoutParameters_ExecutesDelegate()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -139,7 +139,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestFireWithParameter()
+    public void Fire_WithDelegateWithParameters_ExecutesDelegate()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -153,7 +153,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestIgnoredTrigger()
+    public void Fire_WithIgnoredTrigger_DoesNotChangeState()
     {
         var stateMachine = CreateCommonStateMachine();
 
@@ -166,7 +166,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestInternalTrigger()
+    public void Fire_WithInternalTrigger_DoesNotChangeStateAndExecutesDelegate()
     {
         AdvertTrigger? deliveringTrigger = null;
         AdvertTrigger? notDeliveringTrigger = null;
@@ -187,7 +187,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestReconfigureTrigger()
+    public void ConfigureExistingState_WithExistingTriggerConfiguration_ThrowsException()
     {
         var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
 
@@ -203,7 +203,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestOverrideStateConfiguration()
+    public void ConfigureExistingState_WithNewTrigger_DoesNotThrowException()
     {
         var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
 
@@ -220,7 +220,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestOnExitAndOnEntryActions()
+    public void OnEntryAndOnExitActions_ExecutesDelegates()
     {
         var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
 
@@ -242,7 +242,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestOnExitAndOnEntryActionsOnReentry()
+    public void OnEntryAndOnExitActions_WithReentryState_ExecutesDelegates()
     {
         var stateMachine = new StateMachine<AdvertState, AdvertTrigger>();
 
@@ -261,7 +261,7 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void TestCanFire()
+    public void CanFire_ReturnsCorrectResult()
     {
         var stateMachine = CreateCommonStateMachine();
 
