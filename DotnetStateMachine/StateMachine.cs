@@ -16,8 +16,9 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
 
     private TransitionConfiguration<TState, TTrigger> PeekAllowedTransition(TState sourceState, TTrigger trigger)
     {
-        if (!_stateConfiguration.ContainsKey(sourceState) ||
-            !_stateConfiguration[sourceState].AllowedTransitions.TryGetValue(trigger, out var allowedTransitions))
+        var canTransition = TryPeekAllowedTransition(sourceState, trigger, out var allowedTransitions);
+
+        if (!canTransition)
         {
             throw new InvalidOperationException(
                 $"No valid leaving transitions are permitted from state '{sourceState}' for trigger " +
@@ -25,6 +26,14 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
         }
 
         return allowedTransitions;
+    }
+
+    private bool TryPeekAllowedTransition(TState sourceState, TTrigger trigger,
+        out TransitionConfiguration<TState, TTrigger> allowedTransitions)
+    {
+        allowedTransitions = default;
+        return _stateConfiguration.ContainsKey(sourceState) &&
+               _stateConfiguration[sourceState].AllowedTransitions.TryGetValue(trigger, out allowedTransitions);
     }
 
     public TState Peek(TState sourceState, TTrigger trigger)
@@ -52,6 +61,7 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
                 var destinationState = transition.DestinationState;
 
                 _stateConfiguration[sourceState].OnExitAction?.Invoke(transition.Trigger);
+
                 transitionAction?.Invoke(destinationState);
 
                 if (_stateConfiguration.TryGetValue(destinationState, out var stateConfiguration))
@@ -65,5 +75,10 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
         }
 
         return transition.DestinationState;
+    }
+
+    public bool CanFire(TState sourceState, TTrigger trigger)
+    {
+        return TryPeekAllowedTransition(sourceState, trigger, out _);
     }
 }

@@ -259,4 +259,16 @@ public class StateMachineTests
         Assert.True(onExitExecuted);
         Assert.True(onEntryExecuted);
     }
+
+    [Fact]
+    public void TestCanFire()
+    {
+        var stateMachine = CreateCommonStateMachine();
+
+        var canFire = stateMachine.CanFire(AdvertState.Active, AdvertTrigger.Archive);
+        Assert.True(canFire);
+
+        canFire = stateMachine.CanFire(AdvertState.Active, AdvertTrigger.Create);
+        Assert.False(canFire);
+    }
 }
