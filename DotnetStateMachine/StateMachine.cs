@@ -1,14 +1,15 @@
 ﻿namespace DotnetStateMachine;
 
-public class StateMachine<TState, TTrigger> where TState : notnull where TTrigger : notnull
+public class StateMachine<TState, TTrigger, TContext>
+    where TState : notnull where TTrigger : notnull where TContext : notnull
 {
-    private readonly Dictionary<TState, StateConfiguration<TState, TTrigger>> _stateConfiguration = new();
+    private readonly Dictionary<TState, StateConfiguration<TState, TTrigger, TContext>> _stateConfiguration = new();
 
-    public StateConfiguration<TState, TTrigger> Configure(TState state)
+    public StateConfiguration<TState, TTrigger, TContext> Configure(TState state)
     {
         if (!_stateConfiguration.ContainsKey(state))
         {
-            _stateConfiguration.Add(state, new StateConfiguration<TState, TTrigger>(state));
+            _stateConfiguration.Add(state, new StateConfiguration<TState, TTrigger, TContext>(state));
         }
 
         return _stateConfiguration[state];
@@ -41,12 +42,12 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
         return PeekAllowedTransition(sourceState, trigger).DestinationState;
     }
 
-    public TState Fire(TState sourceState, TTrigger trigger)
+    public TState Fire(TState sourceState, TTrigger trigger, TContext context)
     {
-        return Fire(sourceState, trigger, null);
+        return Fire(sourceState, trigger, context, null);
     }
 
-    public TState Fire(TState sourceState, TTrigger trigger, Action<TState>? transitionAction)
+    public TState Fire(TState sourceState, TTrigger trigger, TContext context, Action<TState>? transitionAction)
     {
         var transition = PeekAllowedTransition(sourceState, trigger);
 
@@ -60,13 +61,13 @@ public class StateMachine<TState, TTrigger> where TState : notnull where TTrigge
             case TriggerType.TransitionWithEntryAndExitActions:
                 var destinationState = transition.DestinationState;
 
-                _stateConfiguration[sourceState].OnExitAction?.Invoke(transition.Trigger);
+                _stateConfiguration[sourceState].OnExitAction?.Invoke(transition.Trigger, context);
 
                 transitionAction?.Invoke(destinationState);
 
                 if (_stateConfiguration.TryGetValue(destinationState, out var stateConfiguration))
                 {
-                    stateConfiguration.OnEntryAction?.Invoke(transition.Trigger);
+                    stateConfiguration.OnEntryAction?.Invoke(transition.Trigger, context);
                 }
 
                 break;
