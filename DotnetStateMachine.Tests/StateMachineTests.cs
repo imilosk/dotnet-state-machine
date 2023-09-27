@@ -66,15 +66,29 @@ public class NotificationService
 
 public class StateMachineTests
 {
+    public static IEnumerable<object[]> ValidInputData()
+    {
+        yield return new object[] { AdvertState.None, AdvertTrigger.Create, AdvertState.Draft };
+        yield return new object[] { AdvertState.Draft, AdvertTrigger.Publish, AdvertState.Pending };
+        yield return new object[] { AdvertState.Pending, AdvertTrigger.Approve, AdvertState.Active };
+        yield return new object[] { AdvertState.Pending, AdvertTrigger.Deny, AdvertState.Denied };
+        yield return new object[] { AdvertState.Active, AdvertTrigger.Archive, AdvertState.Archived };
+        yield return new object[] { AdvertState.Draft, AdvertTrigger.Edit, AdvertState.Draft }; // reentry
+        yield return new object[] { AdvertState.Active, AdvertTrigger.Edit, AdvertState.Active }; // reentry 
+        yield return new object[] { AdvertState.Active, AdvertTrigger.Publish, AdvertState.Active }; // ignored
+    }
+
+    public static IEnumerable<object[]> ProhibitedInputData()
+    {
+        yield return new object[] { AdvertState.StateWithoutConfiguration, AdvertTrigger.Edit };
+        yield return new object[] { AdvertState.None, AdvertTrigger.Edit };
+        yield return new object[] { AdvertState.Active, AdvertTrigger.Approve };
+        yield return new object[] { AdvertState.Active, AdvertTrigger.Deny };
+        yield return new object[] { AdvertState.Archived, AdvertTrigger.Edit };
+    }
+
     [Theory]
-    [InlineData(AdvertState.None, AdvertTrigger.Create, AdvertState.Draft)]
-    [InlineData(AdvertState.Draft, AdvertTrigger.Publish, AdvertState.Pending)]
-    [InlineData(AdvertState.Pending, AdvertTrigger.Approve, AdvertState.Active)]
-    [InlineData(AdvertState.Pending, AdvertTrigger.Deny, AdvertState.Denied)]
-    [InlineData(AdvertState.Active, AdvertTrigger.Archive, AdvertState.Archived)]
-    [InlineData(AdvertState.Draft, AdvertTrigger.Edit, AdvertState.Draft)] // reentry
-    [InlineData(AdvertState.Active, AdvertTrigger.Edit, AdvertState.Active)] // reentry 
-    [InlineData(AdvertState.Active, AdvertTrigger.Publish, AdvertState.Active)] // ignored
+    [MemberData(nameof(ValidInputData))]
     public void Peek_WithValidInput_ReturnsCorrectDestinationState(AdvertState sourceState, AdvertTrigger trigger,
         AdvertState expectedState)
     {
@@ -86,12 +100,8 @@ public class StateMachineTests
     }
 
     [Theory]
-    [InlineData(AdvertState.StateWithoutConfiguration, AdvertTrigger.Edit)]
-    [InlineData(AdvertState.None, AdvertTrigger.Edit)]
-    [InlineData(AdvertState.Active, AdvertTrigger.Approve)]
-    [InlineData(AdvertState.Active, AdvertTrigger.Deny)]
-    [InlineData(AdvertState.Archived, AdvertTrigger.Edit)]
-    public void Peek_WithInvalidInput_ThrowsException(AdvertState sourceState, AdvertTrigger trigger)
+    [MemberData(nameof(ProhibitedInputData))]
+    public void Peek_WithProhibitedInput_ThrowsException(AdvertState sourceState, AdvertTrigger trigger)
     {
         var stateMachine = NotificationService.StateMachine;
 
@@ -101,14 +111,7 @@ public class StateMachineTests
     }
 
     [Theory]
-    [InlineData(AdvertState.None, AdvertTrigger.Create, AdvertState.Draft)]
-    [InlineData(AdvertState.Draft, AdvertTrigger.Publish, AdvertState.Pending)]
-    [InlineData(AdvertState.Pending, AdvertTrigger.Approve, AdvertState.Active)]
-    [InlineData(AdvertState.Pending, AdvertTrigger.Deny, AdvertState.Denied)]
-    [InlineData(AdvertState.Active, AdvertTrigger.Archive, AdvertState.Archived)]
-    [InlineData(AdvertState.Draft, AdvertTrigger.Edit, AdvertState.Draft)] // reentry
-    [InlineData(AdvertState.Active, AdvertTrigger.Edit, AdvertState.Active)] // reentry 
-    [InlineData(AdvertState.Active, AdvertTrigger.Publish, AdvertState.Active)] // ignored
+    [MemberData(nameof(ValidInputData))]
     public void Fire_WithValidInput_ReturnsCorrectDestinationState(AdvertState sourceState, AdvertTrigger trigger,
         AdvertState expectedState)
     {
@@ -118,6 +121,18 @@ public class StateMachineTests
         var actualState = stateMachine.Fire(sourceState, trigger, notificationService);
 
         Assert.Equal(expectedState, actualState);
+    }
+
+    [Theory]
+    [MemberData(nameof(ProhibitedInputData))]
+    public void Fire_WithProhibitedInput_ThrowsException(AdvertState sourceState, AdvertTrigger trigger)
+    {
+        var notificationService = new NotificationService();
+        var stateMachine = NotificationService.StateMachine;
+
+        var expectedException = typeof(InvalidOperationException);
+
+        Assert.Throws(expectedException, () => stateMachine.Fire(sourceState, trigger, notificationService));
     }
 
     [Fact]
