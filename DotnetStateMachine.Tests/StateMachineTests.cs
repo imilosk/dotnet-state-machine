@@ -25,33 +25,36 @@ public enum AdvertTrigger
     SetNotDelivering
 }
 
-public class NotificationService
+public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, AdvertService>
 {
-    public static readonly StateMachine<AdvertState, AdvertTrigger, NotificationService> StateMachine = new();
-
-    static NotificationService()
+    public AdvertStateMachine()
     {
-        StateMachine.Configure(AdvertState.None)
+        Configure(AdvertState.None)
             .Permit(AdvertTrigger.Create, AdvertState.Draft);
 
-        StateMachine.Configure(AdvertState.Draft)
+        Configure(AdvertState.Draft)
             .PermitReentry(AdvertTrigger.Edit)
             .Permit(AdvertTrigger.Publish, AdvertState.Pending);
 
-        StateMachine.Configure(AdvertState.Pending)
+        Configure(AdvertState.Pending)
             .Permit(AdvertTrigger.Approve, AdvertState.Active)
             .Permit(AdvertTrigger.Deny, AdvertState.Denied);
 
-        StateMachine.Configure(AdvertState.Active)
+        Configure(AdvertState.Active)
             .PermitReentry(AdvertTrigger.Edit)
             .Permit(AdvertTrigger.Archive, AdvertState.Archived)
             .Ignore(AdvertTrigger.Publish)
             .OnEntry((_, service) => service.SendEntryNotification())
             .OnExit((_, service) => service.SendExitNotification());
 
-        StateMachine.Configure(AdvertState.Archived)
+        Configure(AdvertState.Archived)
             .OnEntry((_, service) => service.SendEntryNotification());
     }
+}
+
+public class AdvertService
+{
+    internal static readonly AdvertStateMachine StateMachine = new();
 
     public virtual void SendEntryNotification()
     {
@@ -92,7 +95,7 @@ public class StateMachineTests
     public void Peek_WithValidInput_ReturnsCorrectDestinationState(AdvertState sourceState, AdvertTrigger trigger,
         AdvertState expectedState)
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var actualState = stateMachine.Peek(sourceState, trigger);
 
@@ -115,8 +118,8 @@ public class StateMachineTests
     public void Fire_WithValidInput_ReturnsCorrectDestinationState(AdvertState sourceState, AdvertTrigger trigger,
         AdvertState expectedState)
     {
-        var notificationService = new NotificationService();
-        var stateMachine = NotificationService.StateMachine;
+        var notificationService = new AdvertService();
+        var stateMachine = AdvertService.StateMachine;
 
         var actualState = stateMachine.Fire(sourceState, trigger, notificationService);
 
@@ -127,8 +130,8 @@ public class StateMachineTests
     [MemberData(nameof(ProhibitedInputData))]
     public void Fire_WithProhibitedInput_ThrowsException(AdvertState sourceState, AdvertTrigger trigger)
     {
-        var notificationService = new NotificationService();
-        var stateMachine = NotificationService.StateMachine;
+        var notificationService = new AdvertService();
+        var stateMachine = AdvertService.StateMachine;
 
         var expectedException = typeof(InvalidOperationException);
 
@@ -138,8 +141,8 @@ public class StateMachineTests
     [Fact]
     public void Fire_WithDelegateWithoutParameters_ExecutesDelegate()
     {
-        var service = new NotificationService();
-        var stateMachine = NotificationService.StateMachine;
+        var service = new AdvertService();
+        var stateMachine = AdvertService.StateMachine;
 
         var actualValue = -1;
 
@@ -151,8 +154,8 @@ public class StateMachineTests
     [Fact]
     public void Fire_WithDelegateWithParameters_ExecutesDelegate()
     {
-        var service = new NotificationService();
-        var stateMachine = NotificationService.StateMachine;
+        var service = new AdvertService();
+        var stateMachine = AdvertService.StateMachine;
 
         AdvertState? expectedParameter = null;
 
@@ -170,8 +173,8 @@ public class StateMachineTests
     {
         AdvertTrigger? actualTrigger = null;
 
-        var stateMachine = NotificationService.StateMachine;
-        var service = new NotificationService();
+        var stateMachine = AdvertService.StateMachine;
+        var service = new AdvertService();
 
         stateMachine.Configure(AdvertState.Active)
             .InternalTransition(expectedTrigger, t => actualTrigger = t);
@@ -185,7 +188,7 @@ public class StateMachineTests
     [Fact]
     public void ConfigureExistingState_WithExistingTriggerConfiguration_ThrowsException()
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var expectedException = typeof(ArgumentException);
 
@@ -198,7 +201,7 @@ public class StateMachineTests
     [Fact]
     public void Configure_ExistingState_DoesNotThrowException()
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var exception = Record.Exception(() => stateMachine.Configure(AdvertState.None));
 
@@ -208,8 +211,8 @@ public class StateMachineTests
     [Fact]
     public void Configure_ExistingStateWithNewTrigger_DoesNotThrowException()
     {
-        var service = new NotificationService();
-        var stateMachine = NotificationService.StateMachine;
+        var service = new AdvertService();
+        var stateMachine = AdvertService.StateMachine;
 
         // The trigger configuration should not be overriden meaning this should not throw an
         // unconfigured trigger exception 
@@ -221,11 +224,11 @@ public class StateMachineTests
     [Fact]
     public void OnEntryAction_ExecutesDelegate()
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var onEntryCalled = false;
 
-        var mock = new Mock<NotificationService>();
+        var mock = new Mock<AdvertService>();
         mock.Setup(notificationService => notificationService.SendEntryNotification())
             .Callback(() => { onEntryCalled = true; });
 
@@ -238,11 +241,11 @@ public class StateMachineTests
     [Fact]
     public void OnExitAction_ExecutesDelegate()
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var onExitCalled = false;
 
-        var mock = new Mock<NotificationService>();
+        var mock = new Mock<AdvertService>();
         mock.Setup(notificationService => notificationService.SendExitNotification())
             .Callback(() => { onExitCalled = true; });
 
@@ -255,11 +258,11 @@ public class StateMachineTests
     [Fact]
     public void OnEntryAction_WithReentryState_ExecutesOnEntryDelegate()
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var onEntryCalled = false;
 
-        var mock = new Mock<NotificationService>();
+        var mock = new Mock<AdvertService>();
         mock.Setup(notificationService => notificationService.SendEntryNotification())
             .Callback(() => { onEntryCalled = true; });
 
@@ -272,11 +275,11 @@ public class StateMachineTests
     [Fact]
     public void OnExitAction_WithReentryState_ExecutesOnExitDelegate()
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var onExitCalled = false;
 
-        var mock = new Mock<NotificationService>();
+        var mock = new Mock<AdvertService>();
         mock.Setup(notificationService => notificationService.SendExitNotification())
             .Callback(() => { onExitCalled = true; });
 
@@ -291,7 +294,7 @@ public class StateMachineTests
     [InlineData(AdvertState.Active, AdvertTrigger.Edit)]
     public void CanFire_ReturnsTrue(AdvertState sourceState, AdvertTrigger trigger)
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var canFire = stateMachine.CanFire(sourceState, trigger);
 
@@ -303,7 +306,7 @@ public class StateMachineTests
     [InlineData(AdvertState.None, AdvertTrigger.Edit)]
     public void CanFire_ReturnsFalse(AdvertState sourceState, AdvertTrigger trigger)
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
         var canFire = stateMachine.CanFire(sourceState, trigger);
 

@@ -1,6 +1,6 @@
 ﻿namespace DotnetStateMachine;
 
-public class StateMachine<TState, TTrigger, TContext>
+public abstract class StateMachine<TState, TTrigger, TContext>
     where TState : notnull where TTrigger : notnull where TContext : notnull
 {
     private readonly Dictionary<TState, StateConfiguration<TState, TTrigger, TContext>> _stateConfiguration = new();
