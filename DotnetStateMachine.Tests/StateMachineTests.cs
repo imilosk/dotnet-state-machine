@@ -29,6 +29,8 @@ public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, Adver
 {
     public AdvertStateMachine()
     {
+        Mutator = (newState, context) => { context.UpdateData(); };
+
         Configure(AdvertState.None)
             .Permit(AdvertTrigger.Create, AdvertState.Draft);
 
@@ -64,6 +66,11 @@ public class AdvertService
     public virtual void SendExitNotification()
     {
         Console.WriteLine("Exit notification");
+    }
+
+    public virtual void UpdateData()
+    {
+        Console.WriteLine("Data updated");
     }
 }
 
@@ -135,31 +142,20 @@ public class StateMachineTests
     }
 
     [Fact]
-    public void Fire_WithDelegateWithoutParameters_ExecutesDelegate()
+    public void Fire_MutatorExecutes()
     {
-        var context = new AdvertService();
         var stateMachine = AdvertService.StateMachine;
 
-        var actualValue = -1;
+        var mutatorCalled = false;
 
-        _ = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish, context, _ => actualValue = 42);
+        var mock = new Mock<AdvertService>();
+        mock.Setup(context => context.UpdateData())
+            .Callback(() => { mutatorCalled = true; });
 
-        Assert.Equal(42, actualValue);
-    }
+        var context = mock.Object;
+        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit, context);
 
-    [Fact]
-    public void Fire_WithDelegateWithParameters_ExecutesDelegate()
-    {
-        var context = new AdvertService();
-        var stateMachine = AdvertService.StateMachine;
-
-        AdvertState? expectedParameter = null;
-
-        var destinationState = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish, context,
-            newState => { expectedParameter = newState; });
-
-        Assert.Equal(AdvertState.Pending, expectedParameter);
-        Assert.Equal(expectedParameter, destinationState);
+        Assert.True(mutatorCalled);
     }
 
     [Theory]

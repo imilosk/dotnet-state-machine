@@ -4,6 +4,7 @@ public abstract class StateMachine<TState, TTrigger, TContext>
     where TState : notnull where TTrigger : notnull where TContext : notnull
 {
     private readonly Dictionary<TState, StateConfiguration<TState, TTrigger, TContext>> _stateConfiguration = new();
+    protected Action<TState, TContext>? Mutator { get; init; }
 
     public StateConfiguration<TState, TTrigger, TContext> Configure(TState state)
     {
@@ -44,11 +45,6 @@ public abstract class StateMachine<TState, TTrigger, TContext>
 
     public TState Fire(TState sourceState, TTrigger trigger, TContext context)
     {
-        return Fire(sourceState, trigger, context, null);
-    }
-
-    public TState Fire(TState sourceState, TTrigger trigger, TContext context, Action<TState>? transitionAction)
-    {
         var transition = PeekAllowedTransition(sourceState, trigger);
 
         switch (transition.TriggerType)
@@ -63,7 +59,7 @@ public abstract class StateMachine<TState, TTrigger, TContext>
 
                 _stateConfiguration[sourceState].OnExitAction?.Invoke(transition.Trigger, context);
 
-                transitionAction?.Invoke(destinationState);
+                Mutator?.Invoke(destinationState, context);
 
                 if (_stateConfiguration.TryGetValue(destinationState, out var stateConfiguration))
                 {
