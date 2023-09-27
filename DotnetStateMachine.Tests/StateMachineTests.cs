@@ -25,11 +25,11 @@ public enum AdvertTrigger
     SetNotDelivering
 }
 
-public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, AdvertService>
+public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext>
 {
     public AdvertStateMachine()
     {
-        Mutator = (newState, context) => { context.UpdateData(); };
+        Mutator = (newState, context) => { context.Mutator(context.Advert, newState); };
 
         Configure(AdvertState.None)
             .Permit(AdvertTrigger.Create, AdvertState.Draft);
@@ -46,31 +46,54 @@ public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, Adver
             .PermitReentry(AdvertTrigger.Edit)
             .Permit(AdvertTrigger.Archive, AdvertState.Archived)
             .Ignore(AdvertTrigger.Publish)
-            .OnEntry((_, context) => context.SendEntryNotification())
-            .OnExit((_, context) => context.SendExitNotification());
+            .OnEntry((_, context) => context.SendNotification())
+            .OnExit((_, context) => context.SendNotification());
 
         Configure(AdvertState.Archived)
-            .OnEntry((_, context) => context.SendEntryNotification());
+            .OnEntry((_, context) => context.SendNotification());
     }
+}
+
+public record Advert
+{
+    public AdvertState State { get; set; }
+}
+
+public record AdvertStateMachineContext
+{
+    public Advert Advert { get; init; } = null!;
+    public Action<Advert, AdvertState> Mutator { get; init; } = null!;
+    public Action SendNotification { get; init; } = null!;
 }
 
 public class AdvertService
 {
     public static readonly AdvertStateMachine StateMachine = new();
+    public readonly AdvertStateMachineContext Context;
 
-    public virtual void SendEntryNotification()
+    public AdvertService()
+    {
+        var advert = new Advert
+        {
+            State = AdvertState.None
+        };
+
+        Context = new AdvertStateMachineContext
+        {
+            Advert = advert,
+            Mutator = UpdateData,
+            SendNotification = SendNotification
+        };
+    }
+
+    protected virtual void UpdateData(Advert advert, AdvertState newState)
+    {
+        advert.State = newState;
+    }
+
+    public virtual void SendNotification()
     {
         Console.WriteLine("Entry notification");
-    }
-
-    public virtual void SendExitNotification()
-    {
-        Console.WriteLine("Exit notification");
-    }
-
-    public virtual void UpdateData()
-    {
-        Console.WriteLine("Data updated");
     }
 }
 
@@ -123,7 +146,7 @@ public class StateMachineTests
     public void Fire_WithValidInput_ReturnsCorrectDestinationState(AdvertState sourceState, AdvertTrigger trigger,
         AdvertState expectedState)
     {
-        var context = new AdvertService();
+        var context = new AdvertService().Context;
         var stateMachine = AdvertService.StateMachine;
 
         var actualState = stateMachine.Fire(sourceState, trigger, context);
@@ -135,7 +158,7 @@ public class StateMachineTests
     [MemberData(nameof(ProhibitedInputData))]
     public void Fire_WithProhibitedInput_ThrowsException(AdvertState sourceState, AdvertTrigger trigger)
     {
-        var context = new AdvertService();
+        var context = new AdvertService().Context;
         var stateMachine = AdvertService.StateMachine;
 
         Assert.Throws<InvalidOperationException>(() => stateMachine.Fire(sourceState, trigger, context));
@@ -145,17 +168,11 @@ public class StateMachineTests
     public void Fire_MutatorExecutes()
     {
         var stateMachine = AdvertService.StateMachine;
+        var context = new AdvertService().Context;
 
-        var mutatorCalled = false;
+        var newState = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish, context);
 
-        var mock = new Mock<AdvertService>();
-        mock.Setup(context => context.UpdateData())
-            .Callback(() => { mutatorCalled = true; });
-
-        var context = mock.Object;
-        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit, context);
-
-        Assert.True(mutatorCalled);
+        Assert.Equal(newState, context.Advert.State);
     }
 
     [Theory]
@@ -166,7 +183,7 @@ public class StateMachineTests
         AdvertTrigger? actualTrigger = null;
 
         var stateMachine = AdvertService.StateMachine;
-        var context = new AdvertService();
+        var context = new AdvertService().Context;
 
         stateMachine.Configure(AdvertState.Active)
             .InternalTransition(expectedTrigger, t => actualTrigger = t);
@@ -201,7 +218,7 @@ public class StateMachineTests
     [Fact]
     public void Configure_ExistingStateWithNewTrigger_DoesNotThrowException()
     {
-        var context = new AdvertService();
+        var context = new AdvertService().Context;
         var stateMachine = AdvertService.StateMachine;
 
         // The trigger configuration should not be overriden meaning this should not throw an
@@ -219,10 +236,10 @@ public class StateMachineTests
         var onEntryCalled = false;
 
         var mock = new Mock<AdvertService>();
-        mock.Setup(context => context.SendEntryNotification())
+        mock.Setup(context => context.SendNotification())
             .Callback(() => { onEntryCalled = true; });
 
-        var context = mock.Object;
+        var context = mock.Object.Context;
         stateMachine.Fire(AdvertState.Active, AdvertTrigger.Archive, context);
 
         Assert.True(onEntryCalled);
@@ -236,10 +253,10 @@ public class StateMachineTests
         var onExitCalled = false;
 
         var mock = new Mock<AdvertService>();
-        mock.Setup(context => context.SendExitNotification())
+        mock.Setup(context => context.SendNotification())
             .Callback(() => { onExitCalled = true; });
 
-        var context = mock.Object;
+        var context = mock.Object.Context;
         stateMachine.Fire(AdvertState.Active, AdvertTrigger.Archive, context);
 
         Assert.True(onExitCalled);
@@ -253,10 +270,10 @@ public class StateMachineTests
         var onEntryCalled = false;
 
         var mock = new Mock<AdvertService>();
-        mock.Setup(context => context.SendEntryNotification())
+        mock.Setup(context => context.SendNotification())
             .Callback(() => { onEntryCalled = true; });
 
-        var context = mock.Object;
+        var context = mock.Object.Context;
         stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit, context);
 
         Assert.True(onEntryCalled);
@@ -270,10 +287,10 @@ public class StateMachineTests
         var onExitCalled = false;
 
         var mock = new Mock<AdvertService>();
-        mock.Setup(context => context.SendExitNotification())
+        mock.Setup(context => context.SendNotification())
             .Callback(() => { onExitCalled = true; });
 
-        var context = mock.Object;
+        var context = mock.Object.Context;
         stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit, context);
 
         Assert.True(onExitCalled);
