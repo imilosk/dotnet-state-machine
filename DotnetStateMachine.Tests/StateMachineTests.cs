@@ -44,24 +44,24 @@ public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, Adver
             .PermitReentry(AdvertTrigger.Edit)
             .Permit(AdvertTrigger.Archive, AdvertState.Archived)
             .Ignore(AdvertTrigger.Publish)
-            .OnEntry((_, service) => service.SendEntryNotification())
-            .OnExit((_, service) => service.SendExitNotification());
+            .OnEntry((_, context) => context.SendEntryNotification())
+            .OnExit((_, context) => context.SendExitNotification());
 
         Configure(AdvertState.Archived)
-            .OnEntry((_, service) => service.SendEntryNotification());
+            .OnEntry((_, context) => context.SendEntryNotification());
     }
 }
 
 public class AdvertService
 {
-    internal static readonly AdvertStateMachine StateMachine = new();
+    public static readonly AdvertStateMachine StateMachine = new();
 
-    public virtual void SendEntryNotification()
+    public void SendEntryNotification()
     {
         Console.WriteLine("Entry notification");
     }
 
-    public virtual void SendExitNotification()
+    public void SendExitNotification()
     {
         Console.WriteLine("Exit notification");
     }
@@ -116,10 +116,10 @@ public class StateMachineTests
     public void Fire_WithValidInput_ReturnsCorrectDestinationState(AdvertState sourceState, AdvertTrigger trigger,
         AdvertState expectedState)
     {
-        var notificationService = new AdvertService();
+        var context = new AdvertService();
         var stateMachine = AdvertService.StateMachine;
 
-        var actualState = stateMachine.Fire(sourceState, trigger, notificationService);
+        var actualState = stateMachine.Fire(sourceState, trigger, context);
 
         Assert.Equal(expectedState, actualState);
     }
@@ -128,21 +128,21 @@ public class StateMachineTests
     [MemberData(nameof(ProhibitedInputData))]
     public void Fire_WithProhibitedInput_ThrowsException(AdvertState sourceState, AdvertTrigger trigger)
     {
-        var notificationService = new AdvertService();
+        var context = new AdvertService();
         var stateMachine = AdvertService.StateMachine;
 
-        Assert.Throws<InvalidOperationException>(() => stateMachine.Fire(sourceState, trigger, notificationService));
+        Assert.Throws<InvalidOperationException>(() => stateMachine.Fire(sourceState, trigger, context));
     }
 
     [Fact]
     public void Fire_WithDelegateWithoutParameters_ExecutesDelegate()
     {
-        var service = new AdvertService();
+        var context = new AdvertService();
         var stateMachine = AdvertService.StateMachine;
 
         var actualValue = -1;
 
-        _ = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish, service, _ => actualValue = 42);
+        _ = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish, context, _ => actualValue = 42);
 
         Assert.Equal(42, actualValue);
     }
@@ -150,12 +150,12 @@ public class StateMachineTests
     [Fact]
     public void Fire_WithDelegateWithParameters_ExecutesDelegate()
     {
-        var service = new AdvertService();
+        var context = new AdvertService();
         var stateMachine = AdvertService.StateMachine;
 
         AdvertState? expectedParameter = null;
 
-        var destinationState = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish, service,
+        var destinationState = stateMachine.Fire(AdvertState.Draft, AdvertTrigger.Publish, context,
             newState => { expectedParameter = newState; });
 
         Assert.Equal(AdvertState.Pending, expectedParameter);
@@ -170,12 +170,12 @@ public class StateMachineTests
         AdvertTrigger? actualTrigger = null;
 
         var stateMachine = AdvertService.StateMachine;
-        var service = new AdvertService();
+        var context = new AdvertService();
 
         stateMachine.Configure(AdvertState.Active)
             .InternalTransition(expectedTrigger, t => actualTrigger = t);
 
-        var destinationState = stateMachine.Fire(AdvertState.Active, expectedTrigger, service);
+        var destinationState = stateMachine.Fire(AdvertState.Active, expectedTrigger, context);
 
         Assert.Equal(AdvertState.Active, destinationState);
         Assert.Equal(expectedTrigger, actualTrigger);
@@ -205,12 +205,12 @@ public class StateMachineTests
     [Fact]
     public void Configure_ExistingStateWithNewTrigger_DoesNotThrowException()
     {
-        var service = new AdvertService();
+        var context = new AdvertService();
         var stateMachine = AdvertService.StateMachine;
 
         // The trigger configuration should not be overriden meaning this should not throw an
         // unconfigured trigger exception 
-        var exception = Record.Exception(() => stateMachine.Fire(AdvertState.None, AdvertTrigger.Create, service));
+        var exception = Record.Exception(() => stateMachine.Fire(AdvertState.None, AdvertTrigger.Create, context));
 
         Assert.Null(exception);
     }
@@ -223,11 +223,11 @@ public class StateMachineTests
         var onEntryCalled = false;
 
         var mock = new Mock<AdvertService>();
-        mock.Setup(notificationService => notificationService.SendEntryNotification())
+        mock.Setup(context => context.SendEntryNotification())
             .Callback(() => { onEntryCalled = true; });
 
-        var service = mock.Object;
-        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Archive, service);
+        var context = mock.Object;
+        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Archive, context);
 
         Assert.True(onEntryCalled);
     }
@@ -240,11 +240,11 @@ public class StateMachineTests
         var onExitCalled = false;
 
         var mock = new Mock<AdvertService>();
-        mock.Setup(notificationService => notificationService.SendExitNotification())
+        mock.Setup(context => context.SendExitNotification())
             .Callback(() => { onExitCalled = true; });
 
-        var service = mock.Object;
-        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Archive, service);
+        var context = mock.Object;
+        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Archive, context);
 
         Assert.True(onExitCalled);
     }
@@ -257,11 +257,11 @@ public class StateMachineTests
         var onEntryCalled = false;
 
         var mock = new Mock<AdvertService>();
-        mock.Setup(notificationService => notificationService.SendEntryNotification())
+        mock.Setup(context => context.SendEntryNotification())
             .Callback(() => { onEntryCalled = true; });
 
-        var service = mock.Object;
-        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit, service);
+        var context = mock.Object;
+        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit, context);
 
         Assert.True(onEntryCalled);
     }
@@ -274,11 +274,11 @@ public class StateMachineTests
         var onExitCalled = false;
 
         var mock = new Mock<AdvertService>();
-        mock.Setup(notificationService => notificationService.SendExitNotification())
+        mock.Setup(context => context.SendExitNotification())
             .Callback(() => { onExitCalled = true; });
 
-        var service = mock.Object;
-        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit, service);
+        var context = mock.Object;
+        stateMachine.Fire(AdvertState.Active, AdvertTrigger.Edit, context);
 
         Assert.True(onExitCalled);
     }
