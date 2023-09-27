@@ -4,7 +4,10 @@ public class StateConfiguration<TState, TTrigger, TContext>
     where TState : notnull where TTrigger : notnull where TContext : notnull
 {
     private readonly TState _state;
-    public Dictionary<TTrigger, TransitionConfiguration<TState, TTrigger>> AllowedTransitions { get; } = new();
+
+    public Dictionary<TTrigger, TransitionConfiguration<TState, TTrigger, TContext>> AllowedTransitions { get; } =
+        new();
+
     internal Action<TTrigger, TContext>? OnEntryAction { get; set; }
     internal Action<TTrigger, TContext>? OnExitAction { get; set; }
 
@@ -15,7 +18,7 @@ public class StateConfiguration<TState, TTrigger, TContext>
 
     private StateConfiguration<TState, TTrigger, TContext> AddAllowedTransition(TTrigger trigger,
         TState destinationState,
-        TriggerType triggerType, Action<TTrigger>? internalTransitionAction = null)
+        TriggerType triggerType, Action<TTrigger, TContext>? internalTransitionAction = null)
     {
         if (AllowedTransitions.ContainsKey(trigger))
         {
@@ -25,7 +28,7 @@ public class StateConfiguration<TState, TTrigger, TContext>
         }
 
         var triggerConfiguration =
-            new TransitionConfiguration<TState, TTrigger>(trigger, destinationState, triggerType,
+            new TransitionConfiguration<TState, TTrigger, TContext>(trigger, destinationState, triggerType,
                 internalTransitionAction);
         AllowedTransitions.Add(trigger, triggerConfiguration);
 
@@ -47,7 +50,8 @@ public class StateConfiguration<TState, TTrigger, TContext>
         return AddAllowedTransition(trigger, _state, TriggerType.Ignored);
     }
 
-    public StateConfiguration<TState, TTrigger, TContext> InternalTransition(TTrigger trigger, Action<TTrigger> action)
+    public StateConfiguration<TState, TTrigger, TContext> InternalTransition(TTrigger trigger,
+        Action<TTrigger, TContext> action)
     {
         return AddAllowedTransition(trigger, _state, TriggerType.InternalTransition, action);
     }

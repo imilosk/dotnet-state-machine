@@ -16,7 +16,8 @@ public abstract class StateMachine<TState, TTrigger, TContext>
         return _stateConfiguration[state];
     }
 
-    private TransitionConfiguration<TState, TTrigger> PeekAllowedTransition(TState sourceState, TTrigger trigger)
+    private TransitionConfiguration<TState, TTrigger, TContext> PeekAllowedTransition(TState sourceState,
+        TTrigger trigger)
     {
         var canTransition = TryPeekAllowedTransition(sourceState, trigger, out var allowedTransitions);
 
@@ -31,7 +32,7 @@ public abstract class StateMachine<TState, TTrigger, TContext>
     }
 
     private bool TryPeekAllowedTransition(TState sourceState, TTrigger trigger,
-        out TransitionConfiguration<TState, TTrigger> allowedTransitions)
+        out TransitionConfiguration<TState, TTrigger, TContext> allowedTransitions)
     {
         allowedTransitions = default;
         return _stateConfiguration.ContainsKey(sourceState) &&
@@ -52,7 +53,7 @@ public abstract class StateMachine<TState, TTrigger, TContext>
             case TriggerType.Ignored:
                 break;
             case TriggerType.InternalTransition:
-                transition.InternalTransitionAction?.Invoke(transition.Trigger);
+                transition.InternalTransitionAction?.Invoke(transition.Trigger, context);
                 break;
             case TriggerType.TransitionWithEntryAndExitActions:
                 var destinationState = transition.DestinationState;
