@@ -106,11 +106,9 @@ public class StateMachineTests
     [MemberData(nameof(ProhibitedInputData))]
     public void Peek_WithProhibitedInput_ThrowsException(AdvertState sourceState, AdvertTrigger trigger)
     {
-        var stateMachine = NotificationService.StateMachine;
+        var stateMachine = AdvertService.StateMachine;
 
-        var expectedException = typeof(InvalidOperationException);
-
-        Assert.Throws(expectedException, () => stateMachine.Peek(sourceState, trigger));
+        Assert.Throws<InvalidOperationException>(() => stateMachine.Peek(sourceState, trigger));
     }
 
     [Theory]
@@ -133,9 +131,7 @@ public class StateMachineTests
         var notificationService = new AdvertService();
         var stateMachine = AdvertService.StateMachine;
 
-        var expectedException = typeof(InvalidOperationException);
-
-        Assert.Throws(expectedException, () => stateMachine.Fire(sourceState, trigger, notificationService));
+        Assert.Throws<InvalidOperationException>(() => stateMachine.Fire(sourceState, trigger, notificationService));
     }
 
     [Fact]
@@ -190,9 +186,7 @@ public class StateMachineTests
     {
         var stateMachine = AdvertService.StateMachine;
 
-        var expectedException = typeof(ArgumentException);
-
-        Assert.Throws(expectedException, () =>
+        Assert.Throws<ArgumentException>(() =>
             stateMachine.Configure(AdvertState.None)
                 .Permit(AdvertTrigger.Create, AdvertState.Draft)
         );
