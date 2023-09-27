@@ -56,12 +56,12 @@ public class AdvertService
 {
     public static readonly AdvertStateMachine StateMachine = new();
 
-    public void SendEntryNotification()
+    public virtual void SendEntryNotification()
     {
         Console.WriteLine("Entry notification");
     }
 
-    public void SendExitNotification()
+    public virtual void SendExitNotification()
     {
         Console.WriteLine("Exit notification");
     }
