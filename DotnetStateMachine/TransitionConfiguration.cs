@@ -1,6 +1,7 @@
 namespace DotnetStateMachine;
 
-public struct TransitionConfiguration<TState, TTrigger, TContext> where TState : notnull
+public struct TransitionConfiguration<TState, TTrigger, TContext>
+    where TState : notnull
     where TTrigger : notnull
     where TContext : notnull
 {

@@ -2,7 +2,7 @@ namespace DotnetStateMachine;
 
 public enum TriggerType
 {
-    TransitionWithEntryAndExitActions,
+    TransitionWithEntryAndExitActions = 1,
     InternalTransition,
     Ignored
 }

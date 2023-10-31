@@ -1,7 +1,9 @@
 namespace DotnetStateMachine;
 
 public class StateConfiguration<TState, TTrigger, TContext>
-    where TState : notnull where TTrigger : notnull where TContext : notnull
+    where TState : notnull
+    where TTrigger : notnull
+    where TContext : notnull
 {
     private readonly TState _state;
 
@@ -16,9 +18,12 @@ public class StateConfiguration<TState, TTrigger, TContext>
         _state = state;
     }
 
-    private StateConfiguration<TState, TTrigger, TContext> AddAllowedTransition(TTrigger trigger,
+    private StateConfiguration<TState, TTrigger, TContext> AddAllowedTransition(
+        TTrigger trigger,
         TState destinationState,
-        TriggerType triggerType, Action<TTrigger, TContext>? internalTransitionAction = null)
+        TriggerType triggerType,
+        Action<TTrigger, TContext>? internalTransitionAction = null
+    )
     {
         if (AllowedTransitions.ContainsKey(trigger))
         {
@@ -27,9 +32,9 @@ public class StateConfiguration<TState, TTrigger, TContext>
                 "state. To accept a trigger without changing state, use either Ignore() or PermitReentry().");
         }
 
-        var triggerConfiguration =
-            new TransitionConfiguration<TState, TTrigger, TContext>(trigger, destinationState, triggerType,
-                internalTransitionAction);
+        var triggerConfiguration = new TransitionConfiguration<TState, TTrigger, TContext>(
+            trigger, destinationState, triggerType, internalTransitionAction);
+
         AllowedTransitions.Add(trigger, triggerConfiguration);
 
         return this;
