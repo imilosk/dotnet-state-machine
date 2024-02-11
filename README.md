@@ -18,21 +18,7 @@ Inspired heavily by [Stateless](https://github.com/dotnet-state-machine/stateles
 
 ## Quick start
 
-We define the state machine and it's transitions:
-```csharp
-public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext>
-{
-    public AdvertStateMachine()
-    {
-        Configure(AdvertState.None)
-            .Permit(AdvertTrigger.Create, AdvertState.Draft);
-            
-        Mutator = (newState, context) => { context.Mutator(context.Advert, newState); };
-    }
-}
-```
-
-We define the context:
+Define the context:
 ```csharp
 public record AdvertStateMachineContext
 {
@@ -42,45 +28,56 @@ public record AdvertStateMachineContext
 }
 ```
 
-Example usage in a class (a service for example):
+There are two ways to define the state machine and it's transitions: 
+
+- Define in a separate class that extends the StateMachine class:
+  ```csharp
+  public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext>
+  {
+      public AdvertStateMachine()
+      {
+          Configure(AdvertState.None)
+              .Permit(AdvertTrigger.Create, AdvertState.Draft);
+      }
+  }
+  ```
+  And use it as a static property:
+  ```csharp
+  public class AdvertService
+  {
+      private static readonly AdvertStateMachine StateMachine = new();
+  }
+  ```
+- Or define it without a separate class in a static constructor:
+  ```csharp
+  public class AdvertService
+  {
+      private static readonly StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext> StateMachine = new();
+      
+      public static AdvertStateMachine()
+      {
+          StateMachine.Configure(AdvertState.None)
+              .Permit(AdvertTrigger.Create, AdvertState.Draft);
+              
+          StateMachine.Mutator = (newState, context) => { context.Mutator(context.Advert, newState); };
+      }
+  }
+  ```
+  
+Usage:
 ```csharp
-public class AdvertService
+private void UpdateData(Advert advert, AdvertState newState)
 {
-    private static readonly AdvertStateMachine StateMachine = new();
-    private readonly AdvertStateMachineContext Context;
-
-    private void UpdateData(Advert advert, AdvertState newState)
-    {
-        advert.State = newState;
-        // Example: Store advert to the database
-    }
-
-    private void SendNotification()
-    {
-        Console.WriteLine("Entry notification");
-        // Example: Use another service to send the notification
-    }
+    advert.State = newState;
+    // Example: Store advert to the database
 }
-```
 
-Or we can define the state machine without a separate class in a static constructor:
-```csharp
-public class AdvertService
+private void SendNotification()
 {
-    private static readonly StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext> StateMachine = new();
-    
-    public static AdvertStateMachine()
-    {
-        StateMachine.Configure(AdvertState.None)
-            .Permit(AdvertTrigger.Create, AdvertState.Draft);
-            
-        StateMachine.Mutator = (newState, context) => { context.Mutator(context.Advert, newState); };
-    }
+    Console.WriteLine("Entry notification");
+    // Example: Use another service to send the notification
 }
-```
 
-Usage (a method in the AdvertService above):
-```csharp
 public void CreateAdvert(AdvertRequest request) {
     var advert = new Advert
     {
@@ -101,7 +98,6 @@ public void CreateAdvert(AdvertRequest request) {
 
 ## Features
 
-- Intuitive way to configure transitions
 - Persistent state machine definition: Set up your state machine just once, and it remains active for the entire application's lifespan.
 - Generic type support: define states and triggers using any data type (numbers, strings, enums, etc.)
 - Entry & exit actions: Execute specific tasks or actions when states are entered or exited
@@ -109,7 +105,8 @@ public void CreateAdvert(AdvertRequest request) {
 - Ignore triggers: Override the default behaviour of throwing an exception when an unhandled trigger is fired
 - Reentrant states: Enable states to transition back to themselves
 - Ability to store state externally using a mutator
-
+- Events
+  - `OnTransitionCompleted` - This event is invoked every time after the state machine changes state. Note: This event will not the fired for ignored triggers and internal transitions. 
 
 ## Coming soon
 
@@ -126,8 +123,7 @@ public void CreateAdvert(AdvertRequest request) {
     - `PermitDynamicIf`
 
 **Events**
-- `OnTransitioned`
-- `OnTransitionedCompleted`
+- `OnBeforeTransition`
 - `OnUnhandledTrigger`
 
 **Other**
