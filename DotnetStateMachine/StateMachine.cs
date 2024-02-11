@@ -7,6 +7,7 @@ public class StateMachine<TState, TTrigger, TContext>
 {
     private readonly Dictionary<TState, StateConfiguration<TState, TTrigger, TContext>> _stateConfiguration = new();
     public Action<TState, TContext>? Mutator { get; set; }
+    public Action<TState, TState, TContext>? OnTransitionCompleted { get; set; }
 
     public StateConfiguration<TState, TTrigger, TContext> Configure(TState state)
     {
@@ -68,6 +69,8 @@ public class StateMachine<TState, TTrigger, TContext>
                 {
                     stateConfiguration.OnEntryAction?.Invoke(transition.Trigger, context);
                 }
+
+                OnTransitionCompleted?.Invoke(sourceState, destinationState, context);
 
                 break;
             default:
