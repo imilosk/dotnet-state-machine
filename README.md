@@ -3,7 +3,7 @@
 The `.NET State Machine` library offers an intuitive way to define and manage workflows as state machines in your .NET
 applications. Tailored for modern web, cloud-based and microservice architectures. Crafted with performance in mind, the library is stateless and thread-safe in order to minimize overhead. 
 
-Inspired heavily by [Stateles](https://github.com/dotnet-state-machine/stateless).
+Inspired heavily by [Stateless](https://github.com/dotnet-state-machine/stateless).
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Inspired heavily by [Stateles](https://github.com/dotnet-state-machine/stateless
 ## Quick start
 
 We define the state machine and it's transitions:
-```
+```csharp
 public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext>
 {
     public AdvertStateMachine()
@@ -33,7 +33,7 @@ public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, Adver
 ```
 
 We define the context:
-```
+```csharp
 public record AdvertStateMachineContext
 {
     public Advert Advert { get; init; };
@@ -43,11 +43,11 @@ public record AdvertStateMachineContext
 ```
 
 Example usage in a class (a service for example):
-```
+```csharp
 public class AdvertService
 {
-    public static readonly AdvertStateMachine StateMachine = new();
-    public readonly AdvertStateMachineContext Context;
+    private static readonly AdvertStateMachine StateMachine = new();
+    private readonly AdvertStateMachineContext Context;
 
     private void UpdateData(Advert advert, AdvertState newState)
     {
@@ -63,8 +63,24 @@ public class AdvertService
 }
 ```
 
-Usage (a method in the AdvertService above):
+Or we can define the state machine without a separate class in a static constructor:
+```csharp
+public class AdvertService
+{
+    private static readonly StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext> StateMachine = new();
+    
+    public static AdvertStateMachine()
+    {
+        StateMachine.Configure(AdvertState.None)
+            .Permit(AdvertTrigger.Create, AdvertState.Draft);
+            
+        StateMachine.Mutator = (newState, context) => { context.Mutator(context.Advert, newState); };
+    }
+}
 ```
+
+Usage (a method in the AdvertService above):
+```csharp
 public void CreateAdvert(AdvertRequest request) {
     var advert = new Advert
     {
@@ -93,9 +109,6 @@ public void CreateAdvert(AdvertRequest request) {
 - Ignore triggers: Override the default behaviour of throwing an exception when an unhandled trigger is fired
 - Reentrant states: Enable states to transition back to themselves
 - Ability to store state externally using a mutator
-
-## Usage
-### Configuration
 
 
 ## Coming soon

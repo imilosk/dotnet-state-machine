@@ -1,10 +1,10 @@
 ﻿namespace DotnetStateMachine;
 
-public abstract class StateMachine<TState, TTrigger, TContext>
+public class StateMachine<TState, TTrigger, TContext>
     where TState : notnull where TTrigger : notnull where TContext : notnull
 {
     private readonly Dictionary<TState, StateConfiguration<TState, TTrigger, TContext>> _stateConfiguration = new();
-    protected Action<TState, TContext>? Mutator { get; set; }
+    public Action<TState, TContext>? Mutator { get; set; }
 
     public StateConfiguration<TState, TTrigger, TContext> Configure(TState state)
     {

@@ -66,6 +66,37 @@ public record AdvertStateMachineContext
     public Action SendNotification { get; init; } = null!;
 }
 
+public class AdvertServiceSecondWayDefinition
+{
+    public static readonly StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext> StateMachine = new();
+
+    static AdvertServiceSecondWayDefinition()
+    {
+        StateMachine.Mutator = (newState, context) => { context.Mutator(context.Advert, newState); };
+
+        StateMachine.Configure(AdvertState.None)
+            .Permit(AdvertTrigger.Create, AdvertState.Draft);
+
+        StateMachine.Configure(AdvertState.Draft)
+            .PermitReentry(AdvertTrigger.Edit)
+            .Permit(AdvertTrigger.Publish, AdvertState.Pending);
+
+        StateMachine.Configure(AdvertState.Pending)
+            .Permit(AdvertTrigger.Approve, AdvertState.Active)
+            .Permit(AdvertTrigger.Deny, AdvertState.Denied);
+
+        StateMachine.Configure(AdvertState.Active)
+            .PermitReentry(AdvertTrigger.Edit)
+            .Permit(AdvertTrigger.Archive, AdvertState.Archived)
+            .Ignore(AdvertTrigger.Publish)
+            .OnEntry((_, context) => context.SendNotification())
+            .OnExit((_, context) => context.SendNotification());
+
+        StateMachine.Configure(AdvertState.Archived)
+            .OnEntry((_, context) => context.SendNotification());
+    }
+}
+
 public class AdvertService
 {
     public static readonly AdvertStateMachine StateMachine = new();
@@ -318,5 +349,12 @@ public class StateMachineTests
         var canFire = stateMachine.CanFire(sourceState, trigger);
 
         Assert.False(canFire);
+    }
+
+    [Fact]
+    public void CanDefine_DoesNotThrowException()
+    {
+        // make sure no exception is thrown
+        _ = new AdvertServiceSecondWayDefinition();
     }
 }
