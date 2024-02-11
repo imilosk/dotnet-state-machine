@@ -1,7 +1,9 @@
 ﻿namespace DotnetStateMachine;
 
 public class StateMachine<TState, TTrigger, TContext>
-    where TState : notnull where TTrigger : notnull where TContext : notnull
+    where TState : notnull
+    where TTrigger : notnull
+    where TContext : notnull
 {
     private readonly Dictionary<TState, StateConfiguration<TState, TTrigger, TContext>> _stateConfiguration = new();
     public Action<TState, TContext>? Mutator { get; set; }
