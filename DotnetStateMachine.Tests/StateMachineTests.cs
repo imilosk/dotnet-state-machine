@@ -217,7 +217,7 @@ public class StateMachineTests
         var context = new AdvertService().Context;
 
         stateMachine.Configure(AdvertState.Active)
-            .InternalTransition(expectedTrigger, (t, c) => actualTrigger = t);
+            .InternalTransition(expectedTrigger, (t, _) => actualTrigger = t);
 
         var destinationState = stateMachine.Fire(AdvertState.Active, expectedTrigger, context);
 
