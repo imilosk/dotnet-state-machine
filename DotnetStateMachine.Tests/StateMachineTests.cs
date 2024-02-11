@@ -5,24 +5,24 @@ namespace DotnetStateMachine.Tests;
 public enum AdvertState
 {
     StateWithoutConfiguration = 1,
-    None,
-    Draft,
-    Pending,
-    Active,
-    Denied,
-    Archived
+    None = 2,
+    Draft = 3,
+    Pending = 4,
+    Active = 5,
+    Denied = 6,
+    Archived = 7
 }
 
 public enum AdvertTrigger
 {
     Create = 1,
-    Publish,
-    Edit,
-    Approve,
-    Deny,
-    Archive,
-    SetDelivering,
-    SetNotDelivering
+    Publish = 2,
+    Edit = 3,
+    Approve = 4,
+    Deny = 5,
+    Archive = 6,
+    SetDelivering = 7,
+    SetNotDelivering = 8
 }
 
 public class AdvertStateMachine : StateMachine<AdvertState, AdvertTrigger, AdvertStateMachineContext>
@@ -101,23 +101,23 @@ public class StateMachineTests
 {
     public static IEnumerable<object[]> ValidInputData()
     {
-        yield return new object[] { AdvertState.None, AdvertTrigger.Create, AdvertState.Draft };
-        yield return new object[] { AdvertState.Draft, AdvertTrigger.Publish, AdvertState.Pending };
-        yield return new object[] { AdvertState.Pending, AdvertTrigger.Approve, AdvertState.Active };
-        yield return new object[] { AdvertState.Pending, AdvertTrigger.Deny, AdvertState.Denied };
-        yield return new object[] { AdvertState.Active, AdvertTrigger.Archive, AdvertState.Archived };
-        yield return new object[] { AdvertState.Draft, AdvertTrigger.Edit, AdvertState.Draft }; // reentry
-        yield return new object[] { AdvertState.Active, AdvertTrigger.Edit, AdvertState.Active }; // reentry 
-        yield return new object[] { AdvertState.Active, AdvertTrigger.Publish, AdvertState.Active }; // ignored
+        yield return [AdvertState.None, AdvertTrigger.Create, AdvertState.Draft];
+        yield return [AdvertState.Draft, AdvertTrigger.Publish, AdvertState.Pending];
+        yield return [AdvertState.Pending, AdvertTrigger.Approve, AdvertState.Active];
+        yield return [AdvertState.Pending, AdvertTrigger.Deny, AdvertState.Denied];
+        yield return [AdvertState.Active, AdvertTrigger.Archive, AdvertState.Archived];
+        yield return [AdvertState.Draft, AdvertTrigger.Edit, AdvertState.Draft]; // reentry
+        yield return [AdvertState.Active, AdvertTrigger.Edit, AdvertState.Active]; // reentry 
+        yield return [AdvertState.Active, AdvertTrigger.Publish, AdvertState.Active]; // ignored
     }
 
     public static IEnumerable<object[]> ProhibitedInputData()
     {
-        yield return new object[] { AdvertState.StateWithoutConfiguration, AdvertTrigger.Edit };
-        yield return new object[] { AdvertState.None, AdvertTrigger.Edit };
-        yield return new object[] { AdvertState.Active, AdvertTrigger.Approve };
-        yield return new object[] { AdvertState.Active, AdvertTrigger.Deny };
-        yield return new object[] { AdvertState.Archived, AdvertTrigger.Edit };
+        yield return [AdvertState.StateWithoutConfiguration, AdvertTrigger.Edit];
+        yield return [AdvertState.None, AdvertTrigger.Edit];
+        yield return [AdvertState.Active, AdvertTrigger.Approve];
+        yield return [AdvertState.Active, AdvertTrigger.Deny];
+        yield return [AdvertState.Archived, AdvertTrigger.Edit];
     }
 
     [Theory]
