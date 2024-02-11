@@ -4,7 +4,7 @@ public abstract class StateMachine<TState, TTrigger, TContext>
     where TState : notnull where TTrigger : notnull where TContext : notnull
 {
     private readonly Dictionary<TState, StateConfiguration<TState, TTrigger, TContext>> _stateConfiguration = new();
-    protected Action<TState, TContext>? Mutator { get; init; }
+    protected Action<TState, TContext>? Mutator { get; set; }
 
     public StateConfiguration<TState, TTrigger, TContext> Configure(TState state)
     {
